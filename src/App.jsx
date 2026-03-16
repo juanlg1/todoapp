@@ -1,149 +1,126 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import "./App.css";
-import Todo from "./pages/Todo";
+import { Card } from "./components/ui/card";
+import { Input } from "./components/ui/input";
+import { Button } from "./components/ui/button";
+import { Search, ListTodo, BrushCleaning, NotebookPen } from "lucide-react";
+import { Badge } from "./components/ui/badge";
+import FormTodo from "./components/Form/FormTodo";
+import TodoList from "./components/TodoList";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./components/ui/dialog";
+import { Toaster } from "./components/ui/sonner";
+import useTodos from "./hooks/useTodos";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "./components/ui/select";
 
 function App() {
 
+  const { todos, pending, addTodo, completeAllTodo, deleteAllTodo, removeTodo, toggleComplete, updateTodo, isEditOpenDialog, todoEdit, setIsEditOpenDialog, setTodoEdit } = useTodos()
 
-  const [todos, setTodos] = useState(() => {
-    const saved = localStorage.getItem('todos')
-    return saved ? JSON.parse(saved) : []
-  })
-  const [tasks, setTasks] = useState('')
-  const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
-  const [editId, setEditId] = useState(null)
+  const [filter, setFilter] = useState('all')
+  const [sortBy, setSortBy] = useState('newest')
 
-  useEffect(() => {
-    localStorage.setItem('todos', JSON.stringify(todos))
-  }, [todos])
-
-  const filteredTask = todos.filter(todo => {
-    const searchFilter = todo.text.toLowerCase().includes(search.toLocaleLowerCase())
-
-    const matchesSearch = filter === 'all' ||
-      filter === 'active' && !todo.completed ||
-      filter === 'completed' && todo.completed
-    return searchFilter && matchesSearch
-  })
-
-  const addTask = (e) => {
-    e.preventDefault()
-    try {
-      if (!tasks.trim()) return
-      const newTodo = {
-        id: Date.now(),
-        text: tasks,
-        completed: false
-      }
-      setTodos([...todos, newTodo])
-      setTasks('')
-    } catch (error) {
-      console.error(error)
-    }
+  const handleEditClick = (todo) => {
+    setTodoEdit(todo)
+    setIsEditOpenDialog(true)
   }
-
-  const toggleComplete = (id) => {
-    try {
-      setTodos(prev =>
-        prev.map(todo => todo.id === id ? { ...todo, completed: !todo.completed } : todo)
-      )
-    } catch (error) {
-      console.error(error)
-    }
-  }
-
-  const toggleAll = () => {
-    const allCompleted = todos.every(todo => todo.completed)
-    setTodos(prev =>
-      prev.map(todo => ({ ...todo, completed: !allCompleted }))
-    )
-  }
-
-  const remaining = todos.filter(todo => todo.completed).length
-
-  const editTodo = (e) => {
-    e.preventDefault()
-    try {
-      setTodos(prev =>
-        prev.map(todo =>
-          todo.id === editId ? { ...todo, text: tasks } : todo
-        )
-      )
-      setTasks('')
-      setEditId(null)
-    } catch (error) {
-      console.error(error)
-    }
-  }
-
-  const startEdit = (todo) => {
-    setEditId(todo.id)
-    setTasks(todo.text)
-  }
-
-  const cancelEdit = () => {
-    setEditId(null)
-    setTasks('')
-  }
-
-  const removeTask = (id) => {
-    setTodos(prev => prev.filter(todo => todo.id !== id))
-  }
-
-  const removeTaskCompleted = () => {
-    setTodos(prev => prev.filter(todo => !todo.completed))
-  }
-
 
   return (
     <>
-      <h1 className="">Todo app - Lista de tareas</h1>
-      <div className="flex margintb">
-        {todos.length === 0 ? 'No tienes tareas pendientes' : ` ${remaining} de ${todos.length} tareas completadas`}
-        <div className="flex gap">
-          <button onClick={() => setFilter('all')}>todos</button>
-          <button onClick={() => setFilter('active')}>activas</button>
-          <button onClick={() => setFilter('completed')}>completas</button>
+      <div className="min-h-screen bg-slate-50" >
+        <div className="max-w-4xl mx-auto px-4 py-2 flex flex-col gap-4">
+          <header className="flex flex-col gap-2 text-center mt-4">
+            <div className="flex justify-center items-center gap-2">
+              <ListTodo className="text-blue-400" size={32} />
+              <h1 className="text-4xl font-medium">Mis Tareas</h1>
+            </div>
+            <p className="text-xl">Organiza y gestiona tus tareas diarias</p>
+          </header>
+          <section className="mx">
+            <FormTodo onSave={addTodo} />
+          </section>
+          <div className="mb-6 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-gray-400" />
+            <Input type="text" placeholder="Buscar tareas..." className="pl-10" value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+          <div className="flex flex-col sm:flex-row  justify-between gap-4">
+            <Card className="px-2 flex flex-col justify-center items-center gap-2 sm:flex-row">
+              <p className=" text-sm font-medium">Filtrar por: </p>
+              <div className="flex gap-2.5">
+                <Button variant={filter === 'all' ? 'default' : 'outline'} className={`cursor-pointer ${filter === 'all' ? 'bg-blue-300 text-black' : ''}`} onClick={() => setFilter('all')} >Todas</Button>
+                <Button variant={filter === 'active' ? 'default' : 'outline'} className={`cursor-pointer ${filter === 'active' ? 'bg-blue-300 text-black' : ''}`} onClick={() => setFilter('active')}>Pendientes</Button>
+                <Button variant={filter === 'completed' ? 'default' : 'outline'} className={`cursor-pointer ${filter === 'completed' ? 'bg-blue-300 text-black' : ''}`} onClick={() => setFilter('completed')}>Completas</Button>
+              </div>
+              <hr />
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium whitespace-nowrap">Ordenar por: </p>
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Ordenar por..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="newest">Más recientes</SelectItem>
+                      <SelectItem value="oldest">Más antiguas</SelectItem>
+                      <SelectItem value="priority-high">Prioridad (Alta primero)</SelectItem>
+                      <SelectItem value="priority-medium">Prioridad (Media primero)</SelectItem>
+                      <SelectItem value="priority-low">Prioridad (Baja primero)</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+            </Card>
+            <div className="flex flex-col gap-2">
+              {todos.length !== 0 && (
+                <>
+                  <Button className="bg-blue-300 text-gray-950 hover:bg-blue-400" onClick={completeAllTodo}>Completar Todo</Button>
+                  <Button variant="destructive" onClick={deleteAllTodo}>Eliminar realizadas</Button>
+                </>
+              )}
+            </div>
+          </div>
+          <Card className="px-2">
+            {todos.length === 0 ? (
+              <div className="flex flex-col justify-center items-center gap-2 p-8 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
+                <NotebookPen className="text-blue-400" size={38} />
+                <p className="text-center font-bold text-xl">Tu agenda está vacía </p>
+                <p className="text-center text-base">¡Ingresa una nueva actividad para comenzar!</p>
+              </div>
+            ) :
+              <TodoList
+                filter={filter}
+                search={search}
+                todos={todos}
+                toggleComplete={toggleComplete}
+                removeTodo={removeTodo}
+                handleEdit={handleEditClick}
+                sortBy={sortBy}
+              />}
+          </Card>
+          <footer>
+            <p className="text-center text-gray-600">
+              {todos.length === 0 ? '' : `${pending} de ${todos.length} tareas pendientes`}
+            </p>
+          </footer>
         </div>
       </div>
-      <div className="flex margintb gap">
-        <div className="">
-          <form className="flex gap" onSubmit={editId ? editTodo : addTask}>
-            <input type="text" placeholder="Ingrese nueva tarea" value={tasks} onChange={(e) => setTasks(e.target.value)} />
-            <button className="btn btn-primary" type="submit">{editId ? 'Update' : 'Add'}</button>
-            {editId && <button type="button" onClick={cancelEdit}>Cancelar</button>}
-          </form>
-        </div>
-        <div className="flex gap">
-          <input type="text" placeholder="Buscar nueva tarea" value={search} onChange={(e) => setSearch(e.target.value)} />
-          <button type="button" onClick={toggleAll}>Completar todas</button>
-          <button type="button" onClick={removeTaskCompleted}>Eliminar todas</button>
-        </div>
-      </div>
-      {todos.length === 0 && <div>Agrega tu primera tarea para comenzar</div>}
-      {filteredTask.map(todo =>
-        <div key={todo.id} className="flex">
-          <div>
-            <p style={{ textDecoration: todo.completed ? 'line-through' : 'none' }}>{todo.text}</p>
-          </div>
-          <div className="flex gap margintb">
-            <button onClick={() => toggleComplete(todo.id)} style={{ background: todo.completed ? 'green' : 'black' }}>Realizado</button>
-            <button onClick={() => startEdit(todo)}>Editar</button>
-            <button onClick={() => removeTask(todo.id)}>Eliminar</button>
-          </div>
-        </div>
-      )}
-
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <Todo />
+      <Dialog open={isEditOpenDialog} onOpenChange={setIsEditOpenDialog} >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Tarea</DialogTitle>
+            <DialogDescription>
+              Edite los datos de su tarea y guarde para continuar
+            </DialogDescription>
+            {isEditOpenDialog && (
+              <FormTodo
+                initialData={todoEdit}
+                onSave={updateTodo}
+              />
+            )}
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+      <Toaster richColors position="bottom-right" />
     </>
   );
 }
