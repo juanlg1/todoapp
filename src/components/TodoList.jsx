@@ -1,13 +1,16 @@
 import { Circle, CircleCheck, Edit2, SearchX, Trash2 } from 'lucide-react'
 import React, { useMemo } from 'react'
 import { Button } from './ui/button'
+import useDebounce from '@/hooks/useDebounce'
 
 const TodoList = ({ todos, search, filter, toggleComplete, removeTodo, handleEdit, sortBy }) => {
 
+  const debounceSearch = useDebounce(search, 500)
+
   const filteredSearch = useMemo(() => {
     const filtered = todos.filter(todo => {
-      const inputFilter = todo.title.toLowerCase().includes(search.toLowerCase()) ||
-        todo.description.toLowerCase().includes(search.toLowerCase())
+      const inputFilter = todo.title.toLowerCase().includes(debounceSearch.toLowerCase()) ||
+        todo.description.toLowerCase().includes(debounceSearch.toLowerCase())
       const matchesSearch = filter === 'all' || (filter === 'active' && !todo.completed) || (filter === 'completed' && todo.completed)
       return inputFilter && matchesSearch
     })
@@ -55,7 +58,7 @@ const TodoList = ({ todos, search, filter, toggleComplete, removeTodo, handleEdi
       }
       return 0 // por si acaso
     })
-  }, [todos, search, filter, sortBy])
+  }, [todos, debounceSearch, filter, sortBy])
 
   if (filteredSearch.length === 0) {
     return (
